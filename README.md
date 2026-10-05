@@ -1,5 +1,7 @@
 # wes-interop-demo
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21184327.svg)](https://doi.org/10.5281/zenodo.21184327)
+
 A federated bioinformatics demonstration using two WES implementations:
 
 - **Japanese site** — [Sapporo](https://github.com/sapporo-wes/sapporo-service) on AWS EC2

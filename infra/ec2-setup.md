@@ -20,8 +20,11 @@ newgrp docker
 ```bash
 mkdir -p ~/sapporo && cd ~/sapporo
 
-# Download compose file
-curl -O https://raw.githubusercontent.com/sapporo-wes/sapporo-service/main/compose.yml
+# Download compose file pinned to v2.2.5 (first release with SAPPORO_EXTRA_DOCKER_ARGS)
+curl -O https://raw.githubusercontent.com/sapporo-wes/sapporo-service/2.2.5/compose.yml
+
+# Pin the image version
+export SAPPORO_VERSION=2.2.5
 
 # Start
 docker compose up -d
