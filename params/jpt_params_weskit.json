@@ -1,0 +1,21 @@
+{
+  "workflow_type": "SMK",
+  "workflow_type_version": "7.30.2",
+  "workflow_url": "file:snp-freq.smk",
+  "workflow_engine": "snakemake",
+  "workflow_engine_parameters": {
+    "use-conda": true
+  },
+  "workflow_params": {
+    "vcf": "/workflows/wes-interop-demo/data/1000g/ALL.chr2_12_15.GRCh38.phased.vcf.gz",
+    "samples": "/workflows/wes-interop-demo/data/1000g/jpt_samples.txt",
+    "regions": "/workflows/wes-interop-demo/data/target_snps.bed",
+    "site_id": "JPT",
+    "bcftools_env": "bcftools.yaml"
+  },
+  "tags": {
+    "demo": "wes-interop",
+    "population": "JPT",
+    "dataset": "1000genomes-phase3"
+  }
+}
