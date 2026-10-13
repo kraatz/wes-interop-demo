@@ -7,11 +7,13 @@
 # Params:   params/jpt_params_weskit.json  (WESkit)
 #           params/ceu_params_smk.json     (WESkit)
 # Reference: example-results/ (or $REFERENCE_DIR)
+# Output:    run-logs/<date>_weskit-only/ (or $RESULTS_DIR), laid out as
+#            {JPT,CEU}/{summary.tsv,run_log.json} and combined/
 set -euo pipefail
 
 WESKIT_ENDPOINT="${WESKIT_ENDPOINT:-https://192.168.49.2:30132}"
 WESKIT_CACERT="${WESKIT_CACERT:-$HOME/interoperability/helm-deployment/certs/weskit.crt}"
-RESULTS_DIR="${RESULTS_DIR:-results-weskit}"
+RESULTS_DIR="${RESULTS_DIR:-run-logs/$(date -u +%F)_weskit-only}"
 REFERENCE_DIR="${REFERENCE_DIR:-example-results}"
 JPT_PARAMS="params/jpt_params_weskit.json"
 CEU_PARAMS="params/ceu_params_smk.json"
@@ -21,7 +23,7 @@ SMK_CONDA_ENV="workflow/envs/bcftools.yaml"
 WES="$WESKIT_ENDPOINT/ga4gh/wes/v1"
 CURL=(curl --cacert "$WESKIT_CACERT")
 
-mkdir -p "$RESULTS_DIR"
+mkdir -p "$RESULTS_DIR/JPT" "$RESULTS_DIR/CEU" "$RESULTS_DIR/combined"
 
 submit() {
     local params="$1"
@@ -68,11 +70,11 @@ echo "    run_id: $RUN_CEU"
 poll_until_done "$RUN_CEU" "CEU"
 
 echo "==> Downloading outputs and run logs..."
-for pair in "jpt:$RUN_JPT" "ceu:$RUN_CEU"; do
+for pair in "JPT:$RUN_JPT" "CEU:$RUN_CEU"; do
     pop="${pair%%:*}"; rid="${pair#*:}"
-    "${CURL[@]}" -fsSL -o "$RESULTS_DIR/summary_${pop}.tsv" \
+    "${CURL[@]}" -fsSL -o "$RESULTS_DIR/$pop/summary.tsv" \
         "$WESKIT_ENDPOINT/weskit/v1/runs/$rid/outputs/summary.tsv"
-    "${CURL[@]}" -fsSL -o "$RESULTS_DIR/runlog_${pop}.json" "$WES/runs/$rid"
+    "${CURL[@]}" -fsSL -o "$RESULTS_DIR/$pop/run_log.json" "$WES/runs/$rid"
 done
 
 echo "==> Aggregating..."
@@ -83,20 +85,24 @@ else
     PY=(python3)
 fi
 "${PY[@]}" scripts/aggregate.py \
-    "$RESULTS_DIR/summary_jpt.tsv" \
-    "$RESULTS_DIR/summary_ceu.tsv" \
-    --output "$RESULTS_DIR/combined_results.tsv" \
-    --plot "$RESULTS_DIR/allele_freq_comparison.png"
+    "$RESULTS_DIR/JPT/summary.tsv" \
+    "$RESULTS_DIR/CEU/summary.tsv" \
+    --output "$RESULTS_DIR/combined/combined_results.tsv" \
+    --plot "$RESULTS_DIR/combined/allele_freq_comparison.png"
 
 echo ""
 echo "==> Comparing against $REFERENCE_DIR/ ..."
 FAIL=0
-for f in summary_jpt.tsv summary_ceu.tsv combined_results.tsv; do
-    if diff -u "$REFERENCE_DIR/$f" "$RESULTS_DIR/$f" > "$RESULTS_DIR/$f.diff"; then
-        echo "  IDENTICAL  $f"
-        rm -f "$RESULTS_DIR/$f.diff"
+# reference file : result file
+for pair in "summary_jpt.tsv:JPT/summary.tsv" \
+            "summary_ceu.tsv:CEU/summary.tsv" \
+            "combined_results.tsv:combined/combined_results.tsv"; do
+    ref="$REFERENCE_DIR/${pair%%:*}"; res="$RESULTS_DIR/${pair#*:}"
+    if diff -u "$ref" "$res" > "$res.diff"; then
+        echo "  IDENTICAL  $res"
+        rm -f "$res.diff"
     else
-        echo "  DIFFERS    $f  (see $RESULTS_DIR/$f.diff)"
+        echo "  DIFFERS    $res  (see $res.diff)"
         FAIL=1
     fi
 done
