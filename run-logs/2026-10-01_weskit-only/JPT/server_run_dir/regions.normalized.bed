@@ -1,0 +1,6 @@
+# Target SNPs for federated frequency analysis (GRCh38 coordinates)
+# Source: dbSNP GRCh38.p14, verified present in the 1000G biallelic SNV+INDEL release (20190312).
+# Format: chrom  start(0-based)  end  snp_id  gene
+12	111803961	111803962	rs671	ALDH2
+2	135851075	135851076	rs4988235	LCT
+15	48134286	48134287	rs1426654	SLC24A5
