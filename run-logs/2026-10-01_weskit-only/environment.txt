@@ -1,0 +1,53 @@
+# Environment of the WESkit-only run, 2026-10-01
+#
+# Recorded on 2026-10-19, after the run, from the still-running deployment.
+# The deployment is unchanged since before the run:
+#   - helm release revision 1, deployed 2026-07-27 (never upgraded)
+#   - pod created 2026-07-27, i.e. before the 2026-10-01 runs
+#   - imagePullPolicy=IfNotPresent, so the container restart on 2026-10-14
+#     reused the image already on the node rather than pulling a new :latest
+# The run directories themselves are gone (see README note 2), so the values
+# below come from the live deployment, not from the run records.
+
+## Host (German site)
+Linux 6.8.0-146-generic x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+VERSION_ID="24.04"
+vcpus:  16
+memory: 31Gi
+
+## Cluster
+minikube v1.38.1
+kubectl server v1.33.12
+helm release: chart=weskit-0.2.0  appVersion=0.0.0  revision=1  deployed=2026-07-27 11:45:48.534089642
+
+## WESkit
+image:  registry.gitlab.com/one-touch-pipeline/weskit/api:latest
+digest: sha256:34bf3cb81d90d6d34af6af90cf02564e319212e40a8c90c7045df16accaa2c4d
+setup.py declares version 0.0.1; the project has no release tags yet
+(CHANGELOG: "Development versions with semantic versioning: None, yet"),
+so the image digest is the only precise identifier.
+WES API: /ga4gh/wes/v1   supported_wes_versions: 1.1.0 (see service-info.json)
+
+## Engine actually used on the submission worker
+snakemake 9.16.3
+Python 3.13.3
+service-info advertises SMK 7.30.2, which is not the engine that ran.
+
+## Input data (sha256, German site copy)
+405d052bce126ebee77a6cf1a43b9cf170aaed00a5fe66ef1721e1634c833785  data/1000g/ALL.chr2_12_15.GRCh38.phased.vcf.gz
+075887f1219cb9cba88a2c07ce852df315d4110fca06310c80b9575f8bf4adf8  data/1000g/ALL.chr2_12_15.GRCh38.phased.vcf.gz.tbi
+bbe94eb466298b1dd42ff1fad421b078bb74a0b9f8c4af5a74f9bed8cb8b50ce  data/1000g/jpt_samples.txt
+bb868256be3b436bc94beafc9825778ed4a3cc641740d80547fc4e4914b53997  data/1000g/ceu_samples.txt
+e3b6f96f735271bfe5bd1fd91328cd562eb6329f994cf62360f73ca6895559ce  data/target_snps.bed
+jpt samples: 104   ceu samples: 99
+
+## Merged VCF provenance (explains the checksum difference vs the Sapporo site)
+##bcftools_concatVersion=1.22+htslib-1.22.1
+##bcftools_concatCommand=concat --allow-overlaps --output-type z --output ALL.chr2_12_15.GRCh38.phased.vcf.gz <chr2> <chr12> <chr15>; Date=Mon May  4 17:31:41 2026
+Each site ran bcftools concat itself, and concat stamps its own command and
+date into the header, so the merged files cannot be byte-identical.
+Content checksums for comparison across sites:
+  1ba5cc6177d3af20a5a6ed672cabfdd406ee810233ab8810cd61d5927e311e1c  header, excluding ##bcftools* lines
+  641f63cffff66ba439b9e9ddcdbb3e82a3abbcc164006037e1777c9eb9a86382  records at the 3 target SNPs
+    (bcftools view -H -r 2:135851076,12:111803962,15:48134287 <merged vcf> | sha256sum)

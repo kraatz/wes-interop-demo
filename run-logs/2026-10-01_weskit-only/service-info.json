@@ -1,0 +1,225 @@
+{
+    "auth_instructions_url": "https://somewhere.org",
+    "contactUrl": "mailto:your@email.de",
+    "createdAt": "2021-01-01T00:00:00+00:00",
+    "default_workflow_engine_parameters": [
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1|accounting-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1|job-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1|group",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1|queue",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1|trace",
+            "type": "bool"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1|timeline",
+            "type": "bool"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1|graph",
+            "type": "bool"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1|report",
+            "type": "bool"
+        },
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1-singularity|accounting-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1-singularity|job-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1-singularity|group",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "NFL|23.04.1-singularity|queue",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1-singularity|trace",
+            "type": "bool"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1-singularity|timeline",
+            "type": "bool"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1-singularity|graph",
+            "type": "bool"
+        },
+        {
+            "default_value": "true",
+            "name": "NFL|23.04.1-singularity|report",
+            "type": "bool"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2|engine-environment",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": "100m",
+            "name": "SMK|7.30.2|max-memory",
+            "type": "Optional[str validFor Python.memory_units.Memory.from_str($)]"
+        },
+        {
+            "default_value": "05:00",
+            "name": "SMK|7.30.2|max-runtime",
+            "type": "Optional[str validFor Python.tempora.parse_timedelta($)]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2|accounting-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2|job-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2|group",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2|queue",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2-singularity|engine-environment",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": "100m",
+            "name": "SMK|7.30.2-singularity|max-memory",
+            "type": "Optional[str validFor Python.memory_units.Memory.from_str($)]"
+        },
+        {
+            "default_value": "05:00",
+            "name": "SMK|7.30.2-singularity|max-runtime",
+            "type": "Optional[str validFor Python.tempora.parse_timedelta($)]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2-singularity|accounting-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2-singularity|job-name",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2-singularity|group",
+            "type": "Optional[str]"
+        },
+        {
+            "default_value": null,
+            "name": "SMK|7.30.2-singularity|queue",
+            "type": "Optional[str]"
+        }
+    ],
+    "description": "",
+    "documentationUrl": "https://gitlab.com/one-touch-pipeline/weskit/documentation/-/wikis/home",
+    "environment": "unknown",
+    "id": "org.weskit.service",
+    "name": "WESkit",
+    "organization": {
+        "name": "Organization",
+        "url": "https://example.org"
+    },
+    "supported_filesystem_protocols": [
+        "file",
+        "S3"
+    ],
+    "supported_wes_versions": [
+        "1.1.0"
+    ],
+    "system_state_counts": {
+        "CANCELED": 0,
+        "CANCELING": 0,
+        "COMPLETE": 0,
+        "EXECUTOR_ERROR": 0,
+        "INITIALIZING": 0,
+        "PAUSED": 0,
+        "PREEMPTED": 0,
+        "QUEUED": 0,
+        "RUNNING": 0,
+        "SYSTEM_ERROR": 0,
+        "UNKNOWN": 0
+    },
+    "tags": {
+        "tag1": "value1",
+        "tag2": "value2"
+    },
+    "type": {
+        "artifact": "wes",
+        "group": "org.ga4gh",
+        "version": "1.1.0"
+    },
+    "updatedAt": "2025-08-01T15:00:00+00:00",
+    "version": "dev-4.1.0",
+    "workflow_engine_versions": {
+        "NFL": {
+            "workflow_engine_version": [
+                "23.04.1",
+                "23.04.1-singularity"
+            ]
+        },
+        "SMK": {
+            "workflow_engine_version": [
+                "7.30.2",
+                "7.30.2-singularity"
+            ]
+        }
+    },
+    "workflow_type_versions": {
+        "NFL": {
+            "workflow_type_version": [
+                "23.04.1",
+                "23.04.1-singularity"
+            ]
+        },
+        "SMK": {
+            "workflow_type_version": [
+                "7.30.2",
+                "7.30.2-singularity"
+            ]
+        }
+    }
+}
