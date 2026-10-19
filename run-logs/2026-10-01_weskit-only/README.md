@@ -23,11 +23,20 @@ bytes depend on the matplotlib build.
 
 ## Setup
 
-- **WES server:** WESkit at the German site, reached at
-  `https://192.168.49.2:30132` (WES API under `/ga4gh/wes/v1`).
-- **Engine:** Snakemake. WESkit ran
+- **Host:** single-node minikube v1.38.1 at the German site, Ubuntu 24.04,
+  16 vCPU, 31 GiB. Helm chart `weskit-0.2.0`, executor type `local`. The
+  executing pod was `weskit-submission-worker-669dd99984-k2gx9`, as recorded
+  in `*/stderr`.
+- **WES server:** WESkit, reached at `https://192.168.49.2:30132` (WES API
+  under `/ga4gh/wes/v1`), `supported_wes_versions` 1.1.0, image
+  `registry.gitlab.com/one-touch-pipeline/weskit/api:latest`. WESkit has no
+  release tags and `setup.py` declares 0.0.1, so there is no meaningful
+  version string, and the image digest of the instance that ran was not
+  recorded before the cluster was stopped — see note 2.
+- **Engine:** WESkit was asked for `SMK=7.30.2` (`*/weskit_log.json`) and ran
   `snakemake --snakefile snp-freq.smk --cores 1 --use-conda --jobs 1 --configfile config.yaml`.
-  The request sets `workflow_type_version` to 7.30.2.
+  The Snakemake binary did not print its version, so the exact version is not
+  recorded; it was not 7.30.2 — see note 9.
 - **Workflow:** `snp-freq.smk` and `bcftools.yaml` are sent as
   `workflow_attachment`. Both are identical to repository tag `v1.0.0`
   (`b7c8c95`).
@@ -35,12 +44,14 @@ bytes depend on the matplotlib build.
   `params/ceu_params_smk.json`. The JPT file is the CEU file with the sample
   list and labels changed to JPT.
 - **Tool environment:** Snakemake builds a conda env from `bcftools.yaml`
-  (bcftools 1.21, htslib 1.24, the same builds as in the Sapporo-only run).
-  The package names come from the `conda-meta/` entries listed in
-  `*/run_log.json`.
+  (bcftools 1.21 `h3a4d415_1`, htslib 1.24 `ha79157c_0`, the same versions as
+  in the Sapporo-only run). The full list of 151 packages with URLs and MD5s
+  is in `*/conda_env_explicit.txt`.
 - **Input data:** `ALL.chr2_12_15.GRCh38.phased.vcf.gz` under
   `/workflows/wes-interop-demo/data/1000g/`. JPT has 104 samples and CEU has
-  99 (AN = 208 and 198 in the summaries).
+  99 (AN = 208 and 198 in the summaries). Checksums are in `environment.txt`:
+  the sample lists and `target_snps.bed` are byte-identical to the Sapporo
+  site's, the merged VCF is not — see note 10.
 - **Client:** `scripts/submit_weskit_only.sh` submitted both runs, downloaded
   the results, ran `aggregate.py` and compared the output with
   `example-results/`.
@@ -57,10 +68,21 @@ Times are as reported in the WESkit run log, which does not state a time zone.
 ## Layout
 
 ```
+service-info.json    GET /ga4gh/wes/v1/service-info (see note 8)
+environment.txt      host, cluster, engine, tool and input versions
 JPT/ and CEU/
-  run_log.json     GET /ga4gh/wes/v1/runs/{id} (as received, single line)
-  summary.tsv      GET /weskit/v1/runs/{id}/outputs/summary.tsv
-combined/          aggregate.py output (TSV + plot)
+  run_log.json       GET /ga4gh/wes/v1/runs/{id} (as received, single line)
+  summary.tsv        GET /weskit/v1/runs/{id}/outputs/summary.tsv
+  stderr             engine stderr, from .weskit/<start time>/stderr
+  stdout             engine stdout, empty for both runs
+  weskit_log.json    .weskit/<start time>/log.json: cmd, env, workdir, times
+  conda_env_explicit.txt         the 151 packages of the tool env
+  genotype_intermediates.sha256  checksums of the intermediate VCFs
+  server_run_dir/    the WESkit run directory, without the conda env:
+                     config.yaml, the attachments as received,
+                     regions.normalized.bed, the intermediate VCFs,
+                     summary.tsv and .snakemake/ (log, metadata, env spec)
+combined/            aggregate.py output (TSV + plot)
 ```
 
 ## Notes and deviations
@@ -70,15 +92,60 @@ combined/          aggregate.py output (TSV + plot)
    `summary_jpt.tsv`, ...). The files were moved here unchanged, so that both
    cross-check runs share one layout. The script now writes this layout
    directly.
-2. **stderr and stdout are not included.** The WESkit run log gives them as
-   paths inside the run directory (`.weskit/<start time>/stderr`), not as
-   content.
-3. **`run_log.json` lists the whole run directory.** `outputs.filesystem` has
+2. **stderr, stdout and the run directories were recovered after the fact.**
+   The WESkit run log gives stderr and stdout as paths inside the run
+   directory (`.weskit/<start time>/stderr`), not as content, and the client
+   kept no copy. The cluster that ran them was stopped on 2026-10-14, so they
+   were recovered on 2026-10-19 from its stopped node, under
+   `/var/hostpath-provisioner/default/data-pvc/{c8e3,9ee2}/`. They are the
+   runs documented here: the recovered `summary.tsv` of each run is
+   byte-identical to the `summary.tsv` in this bundle, which was downloaded
+   from the API on the day of the run. The files are copied verbatim.
+3. **stdout is empty for both runs.** The files are included at length zero
+   rather than omitted, because WESkit's run log points at them and an absent
+   file would be ambiguous. Snakemake writes its progress to stderr.
+4. **The conda environment directory is not included.** It is about 1.5 GB per
+   run. The env spec (`server_run_dir/.snakemake/conda/*.yaml`) and the
+   explicit package list (`*/conda_env_explicit.txt`, reconstructed from the
+   environment's own `conda-meta/`) are included instead.
+5. **Genotype-level intermediates are included.** `subset.raw.vcf.gz`,
+   `subset.vcf.gz` and `tagged.vcf.gz` under `server_run_dir/` hold per-sample
+   genotypes at the 3 target SNPs, for public 1000 Genomes samples. They are
+   kept so the run directory is complete, and because WESkit listed them among
+   the run's outputs and would have served them from the same endpoint as
+   `summary.tsv`. Their checksums are in `*/genotype_intermediates.sha256`.
+6. **The two runs were sequential.** Concurrent runs on one worker race on the
+   shared conda package cache while they create the bcftools env.
+7. **`run_log.json` lists the whole run directory.** `outputs.filesystem` has
    31,951 entries, almost all of them files of the conda env. The intermediate
    VCFs and the Snakemake log are listed too, but only `summary.tsv` was
    downloaded.
-4. **The two runs were sequential.** Concurrent runs on one worker race on the
-   shared conda package cache while they create the bcftools env.
-5. **Not recorded in this bundle:** the WESkit version and its
-   `service-info`, the Snakemake version that ran, input file checksums, and
-   the Python package versions used for aggregation.
+8. **`service-info.json` was captured after the run, from a redeployment.**
+   The instance that ran was never queried for it, and that cluster is gone.
+   The file is included because the engine lists in it are read from the
+   WESkit configuration, and the configuration of the instance that ran
+   declares the same engines (NFL 23.04.1, SMK 7.30.2). Treat it as the
+   configuration of this deployment, not as a record of the run.
+9. **The engine version that actually ran is not recorded, and it was not
+   7.30.2.** WESkit requires `workflow_type_version` to be 7.30.2, the only
+   SMK version it advertises, and passes it on as `WESKIT_WORKFLOW_ENGINE`.
+   But the Snakemake binary on the worker never printed its version, and the
+   log wording ("Assuming unrestricted shared filesystem usage.",
+   "Execute 1 jobs...") is Snakemake 8/9, not 7.30.2. The Sapporo-only run has
+   the same class of problem (note 2 there): it advertises 9.16.3 and runs
+   9.22.0. In neither bundle is the version in `service-info` evidence of what
+   ran.
+10. **The merged input VCF differs between the two sites by checksum.** Each
+   site ran `bcftools concat` itself, and `concat` writes its own command and
+   date into the header, so the files cannot be byte-identical. The sample
+   lists and `target_snps.bed` are byte-identical across sites. For a content
+   comparison, `environment.txt` gives a checksum of the header without the
+   `##bcftools*` lines and of the records at the three target SNPs; the
+   Sapporo side can run the same two commands.
+11. **Still not recorded:** the Python package versions used for aggregation.
+    `aggregate.py` ran on the client through
+    `uv run --with scipy --with matplotlib --with numpy`, which resolves
+    versions at run time and records none. The Sapporo-only bundle has them in
+    `combined/AGGREGATION_ENV.txt`, so the two are not symmetric here. The
+    client-side submission trace was likewise not kept, and the submit script
+    does not write one.

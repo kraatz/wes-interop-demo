@@ -1,0 +1,67 @@
+# Environment of the WESkit-only run, 2026-10-01
+#
+# The runs executed on a minikube cluster at the German site. That cluster was
+# stopped on 2026-10-14 and WESkit was later redeployed on another cluster.
+# The values below were read from the recovered run directories themselves
+# (see */server_run_dir/ and */stderr), not from the current deployment.
+# Where a value could only be read from the deployment configuration rather
+# than from the run, it is marked.
+
+## Executing host
+pod:      weskit-submission-worker-669dd99984-k2gx9   (from */stderr)
+cluster:  minikube v1.38.1, single node, on Ubuntu 24.04, 16 vCPU, 31 GiB
+executor: local (weskit.executor.type=local)
+WESkit data and workflow volumes were dynamically provisioned PVCs
+(storageClass "standard"), so the run directories lived inside the minikube
+node rather than on a host path.
+
+## WESkit  [from the deployment configuration, not from the run]
+chart:  weskit-0.2.0  (appVersion 0.0.0)
+image:  registry.gitlab.com/one-touch-pipeline/weskit/api:latest
+WESkit has no release tags and setup.py declares 0.0.1, so there is no
+meaningful version string. The image digest of the instance that ran was not
+recorded before the cluster was stopped, and cannot be recovered now.
+WES API: /ga4gh/wes/v1, NodePort 30132, supported_wes_versions 1.1.0.
+service-info.json was captured on 2026-10-19 from the later redeployment, not
+from the instance that ran. It is included because the engine lists it reports
+(NFL 23.04.1, SMK 7.30.2) are read from the WESkit configuration, and the
+configuration of the instance that ran declares exactly the same engines.
+
+## Engine
+The run log records the engine WESkit was asked for:
+  WESKIT_WORKFLOW_ENGINE=SMK=7.30.2          (*/weskit_log.json)
+and the command it ran:
+  snakemake --snakefile snp-freq.smk --cores 1 --use-conda --jobs 1 \
+    --configfile config.yaml
+The Snakemake binary on the worker did not print its version, so the exact
+version that ran is not recorded. It was not 7.30.2: the log lines
+"Assuming unrestricted shared filesystem usage." and "Execute 1 jobs..." are
+Snakemake 8/9 wording, and 7.30.2 is only the version label WESkit requires
+in the request. See README note 6.
+
+## Tool environment (built by Snakemake from bcftools.yaml)
+bcftools 1.21 (h3a4d415_1), htslib 1.24 (ha79157c_0)
+python 3.14.7, numpy 2.5.3, scipy 1.18.1, matplotlib-base 3.11.2
+151 packages in total; the full list with URLs and MD5s is in
+*/conda_env_explicit.txt, reconstructed from the environment's conda-meta/.
+
+## Input data (sha256, German site copy)
+405d052bce126ebee77a6cf1a43b9cf170aaed00a5fe66ef1721e1634c833785  ALL.chr2_12_15.GRCh38.phased.vcf.gz
+075887f1219cb9cba88a2c07ce852df315d4110fca06310c80b9575f8bf4adf8  ALL.chr2_12_15.GRCh38.phased.vcf.gz.tbi
+bbe94eb466298b1dd42ff1fad421b078bb74a0b9f8c4af5a74f9bed8cb8b50ce  jpt_samples.txt
+bb868256be3b436bc94beafc9825778ed4a3cc641740d80547fc4e4914b53997  ceu_samples.txt
+e3b6f96f735271bfe5bd1fd91328cd562eb6329f994cf62360f73ca6895559ce  target_snps.bed
+jpt samples: 104   ceu samples: 99
+The paths the run actually read are in */stderr and */server_run_dir/config.yaml.
+
+## Merged VCF provenance (explains the checksum difference vs the Sapporo site)
+##bcftools_concatVersion=1.22+htslib-1.22.1
+##bcftools_concatCommand=concat --allow-overlaps --output-type z --output \
+  ALL.chr2_12_15.GRCh38.phased.vcf.gz <chr2> <chr12> <chr15>; \
+  Date=Mon May  4 17:31:41 2026
+Each site ran bcftools concat itself, and concat stamps its own command and
+date into the header, so the merged files cannot be byte-identical.
+Content checksums for comparison across sites:
+  1ba5cc6177d3af20a5a6ed672cabfdd406ee810233ab8810cd61d5927e311e1c  header, excluding ##bcftools* lines
+  641f63cffff66ba439b9e9ddcdbb3e82a3abbcc164006037e1777c9eb9a86382  records at the 3 target SNPs
+    (bcftools view -H -r 2:135851076,12:111803962,15:48134287 <merged vcf> | sha256sum)

@@ -1,0 +1,5 @@
+bcftools_env: bcftools.yaml
+regions: /workflows/wes-interop-demo/data/target_snps.bed
+samples: /workflows/wes-interop-demo/data/1000g/ceu_samples.txt
+site_id: CEU
+vcf: /workflows/wes-interop-demo/data/1000g/ALL.chr2_12_15.GRCh38.phased.vcf.gz
