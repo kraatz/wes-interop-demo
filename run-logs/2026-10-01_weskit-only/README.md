@@ -26,14 +26,16 @@ bytes depend on the matplotlib build.
 - **Host:** single-node minikube v1.38.1 at the German site, Ubuntu 24.04,
   16 vCPU, 31 GiB. Helm chart `weskit-0.2.0`, executor type `local`. The
   executing pod was `weskit-submission-worker-669dd99984-k2gx9`, as recorded
-  in `*/stderr`.
+  in the engine stderr (`*/server_run_dir/.weskit/*/stderr`).
 - **WES server:** WESkit, reached at `https://192.168.49.2:30132` (WES API
   under `/ga4gh/wes/v1`), `supported_wes_versions` 1.1.0, image
   `registry.gitlab.com/one-touch-pipeline/weskit/api:latest`. WESkit has no
   release tags and `setup.py` declares 0.0.1, so there is no meaningful
-  version string, and the image digest of the instance that ran was not
-  recorded before the cluster was stopped — see note 2.
-- **Engine:** WESkit was asked for `SMK=7.30.2` (`*/weskit_log.json`) and ran
+  version string. The `dev-4.1.0` in `service-info.json` is a chart setting,
+  not a WESkit version (note 8). The image digest of the instance that ran
+  was not recorded before the cluster was stopped.
+- **Engine:** WESkit was asked for `SMK=7.30.2`
+  (`*/server_run_dir/.weskit/*/log.json`) and ran
   `snakemake --snakefile snp-freq.smk --cores 1 --use-conda --jobs 1 --configfile config.yaml`.
   The Snakemake binary did not print its version, so the exact version is not
   recorded; it was not 7.30.2 — see note 9.
@@ -51,7 +53,8 @@ bytes depend on the matplotlib build.
   `/workflows/wes-interop-demo/data/1000g/`. JPT has 104 samples and CEU has
   99 (AN = 208 and 198 in the summaries). Checksums are in `environment.txt`:
   the sample lists and `target_snps.bed` are byte-identical to the Sapporo
-  site's, the merged VCF is not — see note 10.
+  site's, and the merged VCF matches it in content but not byte for byte —
+  see note 10.
 - **Client:** `scripts/submit_weskit_only.sh` submitted both runs, downloaded
   the results, ran `aggregate.py` and compared the output with
   `example-results/`.
@@ -73,15 +76,16 @@ environment.txt      host, cluster, engine, tool and input versions
 JPT/ and CEU/
   run_log.json       GET /ga4gh/wes/v1/runs/{id} (as received, single line)
   summary.tsv        GET /weskit/v1/runs/{id}/outputs/summary.tsv
-  stderr             engine stderr, from .weskit/<start time>/stderr
-  stdout             engine stdout, empty for both runs
-  weskit_log.json    .weskit/<start time>/log.json: cmd, env, workdir, times
   conda_env_explicit.txt         the 151 packages of the tool env
   genotype_intermediates.sha256  checksums of the intermediate VCFs
   server_run_dir/    the WESkit run directory, without the conda env:
                      config.yaml, the attachments as received,
                      regions.normalized.bed, the intermediate VCFs,
-                     summary.tsv and .snakemake/ (log, metadata, env spec)
+                     summary.tsv, .snakemake/ (log, metadata, env spec)
+                     and .weskit/<start time>/ (see note 2):
+      stderr         engine stderr
+      stdout         engine stdout, empty for both runs
+      log.json       WESkit's record of cmd, env, workdir, times
 combined/            aggregate.py output (TSV + plot)
 ```
 
@@ -100,7 +104,11 @@ combined/            aggregate.py output (TSV + plot)
    `/var/hostpath-provisioner/default/data-pvc/{c8e3,9ee2}/`. They are the
    runs documented here: the recovered `summary.tsv` of each run is
    byte-identical to the `summary.tsv` in this bundle, which was downloaded
-   from the API on the day of the run. The files are copied verbatim.
+   from the API on the day of the run. The files are copied verbatim, with
+   one change: `:` in the `.weskit/<start time>/` directory names is
+   replaced by `-` (`2026-10-01T13:51:15.977621` becomes
+   `2026-10-01T13-51-15.977621`), because Windows does not allow `:` in
+   file names. `run_log.json` and `log.json` keep the original paths.
 3. **stdout is empty for both runs.** The files are included at length zero
    rather than omitted, because WESkit's run log points at them and an absent
    file would be ambiguous. Snakemake writes its progress to stderr.
@@ -125,7 +133,12 @@ combined/            aggregate.py output (TSV + plot)
    The file is included because the engine lists in it are read from the
    WESkit configuration, and the configuration of the instance that ran
    declares the same engines (NFL 23.04.1, SMK 7.30.2). Treat it as the
-   configuration of this deployment, not as a record of the run.
+   configuration of this deployment, not as a record of the run. Its
+   `version` (`dev-4.1.0`) is not a WESkit version: service-info returns
+   `static_service_info.version` from the WESkit configuration, and the
+   `weskit-0.2.0` chart sets it to `dev-4.1.0` in
+   `configs/weskit/config.yaml.tpl`, next to placeholder values such as
+   `https://example.org` and the `tag1`/`tag2` tags.
 9. **The engine version that actually ran is not recorded, and it was not
    7.30.2.** WESkit requires `workflow_type_version` to be 7.30.2, the only
    SMK version it advertises, and passes it on as `WESKIT_WORKFLOW_ENGINE`.
@@ -135,13 +148,16 @@ combined/            aggregate.py output (TSV + plot)
    the same class of problem (note 2 there): it advertises 9.16.3 and runs
    9.22.0. In neither bundle is the version in `service-info` evidence of what
    ran.
-10. **The merged input VCF differs between the two sites by checksum.** Each
-   site ran `bcftools concat` itself, and `concat` writes its own command and
-   date into the header, so the files cannot be byte-identical. The sample
-   lists and `target_snps.bed` are byte-identical across sites. For a content
-   comparison, `environment.txt` gives a checksum of the header without the
-   `##bcftools*` lines and of the records at the three target SNPs; the
-   Sapporo side can run the same two commands.
+10. **The merged input VCF differs between the two sites by checksum, not by
+   content.** Each site ran `bcftools concat` itself, and `concat` writes its
+   own command and date into the header, so the files cannot be
+   byte-identical. `environment.txt` gives two content checksums instead:
+   of the header without the `##bcftools*` lines, and of the records at the
+   three target SNPs. The Sapporo site's merged VCF no longer exists, but a
+   rebuild from its source files gives the same two checksums, and the
+   intermediate VCFs of the two runs have identical records and headers
+   apart from the `##bcftools*` lines (note 7 of the Sapporo-only README).
+   The sample lists and `target_snps.bed` are byte-identical across sites.
 11. **Still not recorded:** the Python package versions used for aggregation.
     `aggregate.py` ran on the client through
     `uv run --with scipy --with matplotlib --with numpy`, which resolves

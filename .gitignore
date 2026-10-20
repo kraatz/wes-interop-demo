@@ -4,6 +4,7 @@ tests/output_smk/
 .snakemake/
 *.vcf.gz
 *.vcf.gz.tbi
+
 # Archived run logs are kept verbatim, including Snakemake metadata and VCFs.
 !run-logs/**/.snakemake/
 !run-logs/**/*.vcf.gz
